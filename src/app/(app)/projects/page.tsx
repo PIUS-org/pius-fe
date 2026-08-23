@@ -1,12 +1,12 @@
-import { PageHeader } from '@/shared/ui/page-header';
+import { Suspense } from 'react';
+import { ProjectList } from '@/features/project/components/project-list';
 
-/** 실제 목록은 #9 에서 붙인다. */
+export const metadata = { title: '프로젝트 목록 · PiUS' };
+
 export default function ProjectsPage() {
   return (
-    <PageHeader
-      kicker="프로젝트관리"
-      title="프로젝트 목록"
-      description="화면은 #9 에서 구현합니다."
-    />
+    <Suspense>
+      <ProjectList />
+    </Suspense>
   );
 }

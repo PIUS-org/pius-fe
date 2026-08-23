@@ -10,7 +10,7 @@ import type {
 import { api } from '@/shared/api/client';
 import type { PageResponse } from '@/shared/api/types';
 
-export type ClientListParams = { q?: string; page?: number };
+export type ClientListParams = { q?: string; page?: number; size?: number };
 
 export const clientApi = {
   list: (params: ClientListParams) =>
