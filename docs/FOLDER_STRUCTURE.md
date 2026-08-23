@@ -169,5 +169,8 @@ src/
 | `.env.development` | 개발 서버 | `npm run dev` / `npm run build:dev` |
 | `.env.production` | 운영 | `npm run build:prod` |
 
+`docker` 는 **백엔드가 Docker 로 떠 있는 로컬 환경**을 뜻한다. 프론트엔드를 컨테이너로
+띄운다는 의미가 아니다 — 로컬 개발은 `next dev` 로 직접 실행한다.
+
 `src/shared/config/env.ts` 에서 한 번 읽어 검증하고, 다른 파일에서 `process.env` 를 직접 참조하지 않는다.
 로컬 개발은 `docker` 환경만 사용한다.
