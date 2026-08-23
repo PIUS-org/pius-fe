@@ -1,21 +1,27 @@
-import { env } from '@/shared/config/env';
+'use client';
+
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+import { homePathOf } from '@/entities/account/role';
+import { useAuth } from '@/features/auth/auth-provider';
 
 /**
- * 스캐폴딩 확인용 임시 화면.
+ * 진입점.
  *
- * 실제 라우팅(로그인 · 권한별 리다이렉트)은 #5 · #6 에서 붙인다.
+ * 권한에 따라 갈 곳이 다르다 — 용역은 인사관리를 볼 수 없어 프로젝트로 보낸다.
+ * 쿠키만 보는 proxy.ts 는 권한을 알 수 없으므로 여기서 판단한다.
  */
 export default function Home() {
-  return (
-    <main style={{ padding: '40px', lineHeight: 1.8 }}>
-      <h1>PiUS 업무관리 시스템</h1>
-      <p>프론트엔드 스캐폴딩이 정상 동작합니다.</p>
-      <dl>
-        <dt>환경</dt>
-        <dd>{env.appEnv}</dd>
-        <dt>API</dt>
-        <dd>{env.apiBaseUrl}</dd>
-      </dl>
-    </main>
-  );
+  const router = useRouter();
+  const { state } = useAuth();
+
+  useEffect(() => {
+    if (state.status === 'authenticated') {
+      router.replace(homePathOf(state.account.role));
+    } else if (state.status === 'anonymous') {
+      router.replace('/login');
+    }
+  }, [state, router]);
+
+  return null;
 }

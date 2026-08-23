@@ -65,8 +65,9 @@ src/
 │   │   │   ├── page.tsx  new/page.tsx  [id]/page.tsx
 │   │   └── projects/
 │   │       ├── page.tsx  new/page.tsx  [id]/page.tsx
+│   ├── providers.tsx                    QueryClient · Auth · Toast
 │   └── api/
-│       └── auth/[...route]/route.ts     BFF 프록시 (refresh 쿠키 중계)
+│       └── auth/[action]/route.ts        BFF 프록시 (refresh 쿠키 중계)
 │
 ├── shared/
 │   ├── ui/                              디자인 시스템 primitives + 스토리
@@ -82,10 +83,11 @@ src/
 │   │   ├── format.ts                    formatPhone / formatMoney / formatDate / maskRrn
 │   │   └── date.ts
 │   ├── api/
-│   │   ├── client.ts                    axios 인스턴스 + 인터셉터
+│   │   ├── client.ts                    fetch 래퍼 + 401 재발급
+│   │   ├── types.ts                     ApiResponse · PageResponse
+│   │   ├── error.ts                     ApiError · 정규화
 │   │   ├── query-client.ts              TanStack Query 설정
-│   │   ├── response.ts                  ApiResponse 언랩 · 에러 정규화
-│   │   └── error-code.ts                서버 에러코드 → 한글 메시지
+│   │   └── error-code.ts                화면 맥락별 문구 재정의
 │   └── config/
 │       └── env.ts                       환경변수 검증 및 노출
 │

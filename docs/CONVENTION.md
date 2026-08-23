@@ -137,7 +137,11 @@ export function ProjectStatusTag({ status, overdue }: Props) {
 
 ## 8. 데이터 페칭
 
-- 조회는 `useQuery`, 변경은 `useMutation`. 컴포넌트에서 `axios` 를 직접 호출하지 않는다.
+- HTTP 클라이언트는 `shared/api/client.ts` 의 `api` 하나뿐이다. axios 를 쓰지 않는다 —
+  Next 가 fetch 를 감싸 두었고 필요한 것이 헤더 주입과 401 재발급뿐이라 라이브러리를 더할 이유가 없다.
+- 조회는 `useQuery`, 변경은 `useMutation`. 컴포넌트에서 `fetch` 를 직접 호출하지 않는다.
+- **Access 토큰은 메모리에만 둔다.** `localStorage` 에 넣으면 XSS 한 번으로 새 나간다.
+  새로고침 시에는 Refresh 쿠키로 다시 받아온다.
 - queryKey 는 배열 리터럴을 흩뿌리지 말고 `features/*/api` 에 팩토리로 모은다.
 
 ```ts

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Barlow, Barlow_Condensed, Noto_Sans_KR } from 'next/font/google';
 import './globals.css';
+import { Providers } from './providers';
 
 /*
  * 목업의 타이포그래피를 그대로 옮긴다.
@@ -37,7 +38,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="ko">
       <body className={`${barlow.variable} ${barlowCondensed.variable} ${notoSansKr.variable}`}>
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
