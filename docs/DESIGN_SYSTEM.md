@@ -96,19 +96,44 @@ OKLCH 단일 명도 스케일에서 생성되어, 같은 단계는 역할이 달
 
 ## 4. 스페이싱 · 반경 · 엘리베이션
 
+### 스페이싱 — 원본 스케일을 옮기지 않았다
+
+원본 시스템은 `3.4 / 6.8 / 10.2 / 13.6 / 20.4 / 27.2px` 스케일을 정의하지만 **이식하지 않았다.**
+
+1. 목업 마크업 자체가 이 토큰을 쓰지 않는다. `padding: 20px 24px`, `gap: 16px` 처럼
+   평범한 4px 배수를 인라인으로 쓰고 있어 Tailwind 기본 스케일(`p-5` = 20px, `gap-4` = 16px)이
+   오히려 더 정확히 맞는다.
+2. Tailwind v4 에서 `--spacing-1: 3.4px` 를 선언하면 `p-1` 이 4px 가 아니게 된다.
+   읽는 사람이 매번 실제 값을 확인해야 한다.
+
+스케일에 없는 값(22px 등)은 `p-[22px]` 로 쓴다.
+
+### 반경 — 전부 0
+
+블루프린트 스타일이므로 반경 토큰을 두지 않고 `theme.css` 의 base 레이어에서
+모든 요소에 `border-radius: 0` 을 적용한다. 컴포넌트마다 `rounded-none` 을 붙이지 않는다.
+
+### 엘리베이션
+
 ```css
---space-1: 3.4px;   --space-2: 6.8px;   --space-3: 10.2px;
---space-4: 13.6px;  --space-6: 20.4px;  --space-8: 27.2px;
-
---radius-sm: 2px;   --radius-md: 4px;   --radius-lg: 7px;   /* 실제 컴포넌트는 0 을 사용 */
-
 --shadow-sm: 0 1px 2px  color-mix(in srgb, #2b2b2d 14%, transparent);
 --shadow-md: 0 3px 10px color-mix(in srgb, #2b2b2d 16%, transparent);
 --shadow-lg: 0 12px 32px color-mix(in srgb, #2b2b2d 22%, transparent);
 ```
 
-반경 토큰은 시스템 원본과의 대응을 위해 유지하되, **v1.0 컴포넌트는 전부 `0`** 을 사용한다.
-엘리베이션은 Dialog(`shadow-lg`) 외에는 쓰지 않는다.
+Dialog(`shadow-lg`)와 Toast(`shadow-md`) 외에는 쓰지 않는다.
+
+### 추가한 토큰
+
+원본에 없지만 목업이 반복해서 쓰는 값을 이름으로 고정했다.
+
+| 토큰 | 값 | 용도 |
+| --- | --- | --- |
+| `--color-muted` | 텍스트 55% | 보조 설명 |
+| `--color-muted-strong` | 텍스트 70% | 폼 라벨 |
+| `--color-muted-weak` | 텍스트 45% | No 열, placeholder |
+| `--color-danger` | `#c0392b` | **계약기간 초과 표시 전용.** 시스템의 유일한 경고색 |
+| `.tabular` | `font-variant-numeric: tabular-nums` | 금액 · 날짜 자릿수 정렬 |
 
 ---
 
@@ -116,27 +141,38 @@ OKLCH 단일 명도 스케일에서 생성되어, 같은 단계는 역할이 달
 
 `src/shared/ui/` 에 구현하며, 각 컴포넌트는 `*.stories.tsx` 를 함께 둔다.
 
-| 컴포넌트 | variant / props | 비고 |
+`src/shared/ui/` 에 19개가 있다. 전부 `index.ts` 에서 내보낸다.
+
+| 파일 | 컴포넌트 | 비고 |
 | --- | --- | --- |
-| `Button` | `primary` · `secondary` · `ghost` / `size` / `iconOnly` · `block` | 폰트는 `font-heading` |
-| `Input` | `type`, `invalid`, `readOnly` | 배경 `surface`, 높이 36px |
-| `Textarea` | `rows` | 최소 90px, 세로 리사이즈만 |
-| `Select` | `options` | 접근성 필요 시 Radix Select |
-| `Radio` / `RadioGroup` | — | 커스텀 `dot` 마커 |
-| `Segmented` | `options`, `value` | 목록 필터 칩 (전체/재직/퇴사 등) |
-| `Field` | `label`, `hint`, `error`, `required` | 라벨 12px / `text 70%` |
-| `Card` | `kicker`, `title`, `meta` | hairline 보더 |
-| `Panel` | `tone: default \| accent` | 안내 패널 (`accent-100`) |
-| `Tag` | `accent` · `accent-2` · `neutral` · `outline` | 상태 표시 |
-| `Table` | `columns`, `rows`, `onRowClick` | `th` uppercase, hover 배경 |
-| `Tabs` | `items`, `value` | 하단 2px accent 보더 |
-| `Pagination` | `page`, `totalPages` | `‹` 숫자 `›` |
-| `Dialog` | Radix Dialog 기반 | backdrop `neutral-900 50%` |
-| `Toast` | `message` | 우측 하단 고정, 2.2초 |
-| `FileUpload` | `accept`, `files` | 파일 목록 + dashed 드롭존 |
-| `EmptyState` | `title`, `description` | 목록 0건 |
-| `DetailRow` | `label`, `children` | 상세 화면의 `라벨 : 값` 행 |
-| `PageHeader` | `kicker`, `title`, `actions` | 목록 화면 상단 |
+| `button.tsx` | `Button` | `primary` · `secondary` · `ghost` · **`inverse`**(사이드바용) / `sm` `md` `lg` `icon` / `block` |
+| `input.tsx` | `Input` | 배경 `surface`, 최소 높이 36px. `inputClassName` 을 다른 입력에서 재사용 |
+| `textarea.tsx` | `Textarea` | 최소 90px, 세로 리사이즈만 |
+| `select.tsx` | `Select` | 네이티브 select + 토큰 색 화살표 |
+| `field.tsx` | `Field` | **render prop** 으로 `id` 를 넘겨 label 연결을 강제 |
+| `radio.tsx` | `RadioGroup` | Radix RadioGroup + 커스텀 dot |
+| `segmented.tsx` | `Segmented` | 목록 필터 칩 |
+| `tag.tsx` | `Tag` | `accent` · `accent-2` · `neutral` · `outline` |
+| `card.tsx` | `Card` · `CardKicker` · `Panel` | hairline 면 / 케이스레이블 / 안내 패널 |
+| `detail-row.tsx` | `DetailRow` | 상세 화면의 `라벨 : 값` 행 |
+| `page-header.tsx` | `PageHeader` | 케이스레이블 + 제목 + 액션 |
+| `empty-state.tsx` | `EmptyState` | 목록 0건 |
+| `table.tsx` | `Table` | 컬럼 정의 기반. **행 클릭이 키보드로도 동작** |
+| `tabs.tsx` | `Tabs` · `TabPanel` | Radix Tabs |
+| `pagination.tsx` | `Pagination` | 현재 페이지 기준 ±2칸 |
+| `dialog.tsx` | `Dialog` · `DialogClose` | Radix Dialog (포커스 트랩 · Esc) |
+| `toast.tsx` | `ToastProvider` · `useToast` | 우측 하단 2.2초, `aria-live` |
+| `file-upload.tsx` | `FileUpload` | 파일 목록 + dashed 업로드 영역, `readOnly` 지원 |
+
+### 목업보다 개선한 점
+
+목업은 정적 HTML 이라 접근성이 빠져 있다. 컴포넌트로 옮기면서 채웠다.
+
+- **테이블 행** — 목업은 `tr onClick` 만 있어 키보드로 상세에 갈 수 없다.
+  `role="button"` + `tabIndex` + Enter/Space 처리를 넣었다.
+- **다이얼로그** — 목업은 배경 `div` 뿐이라 Esc 로 닫히지 않고 포커스가 뒤로 샌다. Radix 로 대체.
+- **폼 라벨** — `Field` 가 `id` 를 만들어 넘기므로 label 연결을 잊을 수 없다.
+- **토스트** — `aria-live="polite"` 로 스크린리더에도 읽힌다.
 
 ### 구현 규칙
 
@@ -189,10 +225,24 @@ OKLCH 단일 명도 스케일에서 생성되어, 같은 단계는 역할이 달
 npm run storybook     # http://localhost:6006
 ```
 
-- `@storybook/nextjs` 프레임워크, `src/styles/theme.css` 를 preview 에 전역 주입한다.
-- 스토리 그룹: `Foundations/*` (Color · Typography · Spacing), `Components/*`.
-- 각 컴포넌트는 최소한 **모든 variant 를 한 화면에 나열한 스토리** 하나를 갖는다.
-- 컴포넌트를 추가하거나 variant 를 바꾸면 스토리도 같은 PR 에서 갱신한다.
+- Storybook 10 + `@storybook/nextjs`. 스토리는 `src/shared/ui/__stories__/` 에 둔다.
+- `preview.tsx` 가 `globals.css` 를 불러오므로 앱과 같은 토큰이 적용된다.
+  배경 기본값은 **페이지 배경(`#f2f2f3`)** 이다 — 흰 바탕에서는 hairline 테두리가 실제와 다르게 보인다.
+- 앱에서는 `next/font` 가 폰트 변수를 주입하지만 Storybook 은 `layout.tsx` 를 거치지 않는다.
+  `storybook-fonts.css` 가 같은 서체를 웹폰트로 불러와 변수 이름을 맞춘다.
+- 스토리 그룹
+
+| 그룹 | 스토리 |
+| --- | --- |
+| `Foundations/토큰` | 색상 · 타이포그래피 · 엘리베이션 |
+| `Components/폼` | 버튼 · 입력 · 선택 |
+| `Components/표시` | 태그 · 면 · 페이지헤더 · 테이블 · 탭 · 빈상태 |
+| `Components/오버레이` | 다이얼로그 · 토스트 · 파일업로드 |
+
+- 각 스토리는 **모든 variant 를 한 화면에 나열**한다. 컴포넌트를 추가하거나 variant 를 바꾸면
+  같은 PR 에서 스토리도 갱신한다.
+- 스토리 이름은 한글로 쓰되 `render` 함수 이름은 영문 PascalCase 로 둔다 —
+  React 의 rules-of-hooks 가 컴포넌트 이름을 대문자로 시작하는 것으로 판단하기 때문이다.
 
 ---
 

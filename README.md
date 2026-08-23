@@ -50,6 +50,8 @@ cd ../backend && docker compose -f docker/docker-compose.yml up -d
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run format` / `format:check` | Prettier |
 | `npm run check` | lint + typecheck + format:check (PR 전 실행) |
+| `npm run storybook` | 디자인 시스템 카탈로그 (http://localhost:6006) |
+| `npm run build-storybook` | Storybook 정적 빌드 |
 
 환경변수는 `src/shared/config/env.ts` 한 곳에서 읽는다. 다른 파일에서 `process.env` 를 직접 참조하지 않는다.
 
