@@ -4,6 +4,7 @@
 
 ```
 pius-fe/
+├── proxy.ts                   Next 16 의 middleware (인증 여부 판정)
 ├── .storybook/
 │   ├── main.ts
 │   └── preview.tsx            theme.css 전역 주입
@@ -136,7 +137,9 @@ src/
 | `/clients`, `/clients/new`, `/clients/[id]` | `app/(app)/clients/**` | `MASTER` · `EMPLOYEE` |
 | `/projects`, `/projects/new`, `/projects/[id]` | `app/(app)/projects/**` | 전체 |
 
-- `middleware.ts` 는 인증 여부만 판정해 미인증 시 `/login` 으로 보낸다.
+- **`proxy.ts`** 가 인증 여부만 판정해 미인증 시 `/login` 으로 보낸다.
+  Next 16 에서 `middleware.ts` 가 `proxy.ts` 로 바뀌었고, export 하는 함수 이름도 `proxy` 다.
+  런타임은 `nodejs` 고정이며 `edge` 는 지원하지 않는다.
 - 역할 기반 차단은 `(app)/layout.tsx` 의 가드에서 처리하고, 서버는 별도로 `403` 을 반환한다.
   **프론트엔드 가드는 UX 용이며 보안 경계가 아니다.**
 
