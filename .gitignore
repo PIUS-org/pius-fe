@@ -16,13 +16,12 @@ storybook-static/
 coverage/
 
 # Env
+# 환경별 파일(.env.docker / .env.development / .env.production)은 저장소에 함께 둔다.
+# 민감값이 없고, 받는 즉시 실행되게 하기 위함이다.
+# 개인 설정으로 덮어쓰려면 .env.local 을 만든다.
 .env
 .env.local
 .env*.local
-!.env.example
-!.env.docker
-!.env.development
-!.env.production
 
 # Logs
 *.log
@@ -38,3 +37,6 @@ yarn-error.log*
 # Misc
 *.tsbuildinfo
 .vercel
+
+# Next.js standalone / turbopack
+.turbo/

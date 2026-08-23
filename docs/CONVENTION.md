@@ -56,7 +56,40 @@ style: 프로젝트 목록 계약기간 초과 표시 색상 조정 (#9)
 
 ---
 
-## 4. TypeScript
+## 4. Next.js 16 주의사항
+
+이 프로젝트는 Next.js 16 을 쓴다. 15 이하와 다른 점 중 자주 걸리는 것들이다.
+
+| 항목 | 15 이하 | 16 |
+| --- | --- | --- |
+| 미들웨어 파일 | `middleware.ts` / `export function middleware` | **`proxy.ts` / `export function proxy`** (런타임 `nodejs` 고정) |
+| `cookies()` `headers()` `draftMode()` | 동기 접근 가능 | **`await` 필수** |
+| `params` `searchParams` | 동기 접근 가능 | **`Promise` — `await` 필수** |
+| 번들러 | webpack 기본 | **Turbopack 기본** |
+| ESLint | `.eslintrc` 호환 | **flat config 만** |
+
+```tsx
+// page.tsx — params 는 Promise 다
+export default async function Page({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+}
+```
+
+```ts
+// route.ts — cookies() 도 await 한다
+import { cookies } from 'next/headers';
+
+export async function POST() {
+  const cookieStore = await cookies();
+  const refreshToken = cookieStore.get('refreshToken');
+}
+```
+
+버전별 변경 내용은 `node_modules/next/dist/docs/01-app/02-guides/upgrading/version-16.md` 에 들어 있다.
+
+---
+
+## 5. TypeScript
 
 - `strict: true`. `any` 금지 — 불가피하면 `unknown` 으로 받고 좁힌다.
 - 서버 응답 타입은 `entities/*/types.ts` 에 한 번만 정의하고 재사용한다.
@@ -71,7 +104,7 @@ export type EmploymentType = 'EMPLOYEE' | 'CONTRACTOR';
 
 ---
 
-## 5. 컴포넌트
+## 6. 컴포넌트
 
 - 함수 선언형 `export function Xxx()` 를 쓴다. `React.FC` 는 쓰지 않는다.
 - 한 파일에 컴포넌트 하나. 100줄을 넘기면 분리를 검토한다.
@@ -92,7 +125,7 @@ export function ProjectStatusTag({ status, overdue }: Props) {
 
 ---
 
-## 6. 스타일
+## 7. 스타일
 
 - **Tailwind 유틸만 사용한다.** 인라인 `style` 과 CSS Modules 는 쓰지 않는다.
   (예외: 서버에서 내려온 동적 수치를 그대로 반영해야 하는 경우)
@@ -102,7 +135,7 @@ export function ProjectStatusTag({ status, overdue }: Props) {
 
 ---
 
-## 7. 데이터 페칭
+## 8. 데이터 페칭
 
 - 조회는 `useQuery`, 변경은 `useMutation`. 컴포넌트에서 `axios` 를 직접 호출하지 않는다.
 - queryKey 는 배열 리터럴을 흩뿌리지 말고 `features/*/api` 에 팩토리로 모은다.
@@ -120,7 +153,7 @@ export const personKeys = {
 
 ---
 
-## 8. 폼
+## 9. 폼
 
 - 제어 컴포넌트로 다루고, 검증은 제출 시점 + blur 시점에 표시한다.
 - 자동 포맷(전화번호 하이픈 · 금액 콤마)은 **입력 중에는 하지 않고 blur 또는 제출 시** 적용한다.
@@ -129,7 +162,7 @@ export const personKeys = {
 
 ---
 
-## 9. 권한 처리
+## 10. 권한 처리
 
 - 권한 판정 로직은 `entities/account/role.ts` 한 곳에만 둔다.
 
@@ -145,7 +178,7 @@ export const canCreateProject = (role: Role) => role !== 'CONTRACTOR';
 
 ---
 
-## 10. 접근성
+## 11. 접근성
 
 - 인터랙티브 요소는 `button` / `a` 로 만든다. `div onClick` 금지.
   (테이블 행 클릭은 `role="button"` + `tabIndex` + 키보드 핸들러를 함께 둔다)
@@ -155,7 +188,7 @@ export const canCreateProject = (role: Role) => role !== 'CONTRACTOR';
 
 ---
 
-## 11. 코드 품질
+## 12. 코드 품질
 
 ```bash
 npm run lint          # ESLint

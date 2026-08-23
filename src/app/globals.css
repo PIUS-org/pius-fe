@@ -1,0 +1,21 @@
+@import 'tailwindcss';
+
+/*
+ * 디자인 토큰(@theme)은 #3 에서 src/styles/theme.css 로 이식한다.
+ * 여기서는 Tailwind 진입점과 최소 리셋만 둔다.
+ */
+
+body {
+  margin: 0;
+  font-family: var(--font-body), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-heading), system-ui, sans-serif;
+}
