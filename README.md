@@ -18,13 +18,29 @@ PiUS 업무관리 시스템 v1.0 — Frontend
 
 ## 환경 구분
 
-| 환경 | 용도 |
-| --- | --- |
-| `docker` | 로컬 개발 — Docker 로 띄운 백엔드(`localhost:8080`) 연동 |
-| `dev` | 개발 서버 배포용 |
-| `prod` | 운영 배포용 |
+| 환경 | 용도 | 실행 |
+| --- | --- | --- |
+| `docker` | 로컬 개발 — Docker 로 띄운 백엔드(`localhost:8080`) 연동 | `npm run dev:docker` |
+| `dev` | 개발 서버 배포용 | `npm run build:dev` |
+| `prod` | 운영 배포용 | `npm run build:prod` |
 
 로컬에서는 `docker` 환경만 사용합니다.
+
+> `docker` 는 **백엔드가 Docker 로 떠 있는 로컬 환경**을 뜻한다.
+> 프론트엔드 자체는 컨테이너로 띄우지 않는다 — HMR 이 느려지고 코드를 고칠 때마다
+> 이미지를 다시 빌드해야 해 개발이 불편해진다.
+
+## 배포
+
+배포 대상이 아직 정해지지 않았다. `next.config.ts` 에 `output: 'standalone'` 을 켜 두어
+컨테이너 배포로 결정되면 Dockerfile 작성만 남는다.
+
+| 대상 | 필요한 것 |
+| --- | --- |
+| Vercel | 추가 작업 없음. 환경변수만 주입 |
+| ECS · Cloud Run · 자체 서버 | multi-stage Dockerfile + `.dockerignore` |
+
+어느 쪽이든 `.env.development` / `.env.production` 의 API 주소를 실제 값으로 바꿔야 한다.
 
 ## 빠른 시작
 
