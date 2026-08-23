@@ -39,6 +39,14 @@ npm run dev:docker      # http://localhost:3000
 cd ../backend && docker compose -f docker/docker-compose.yml up -d
 ```
 
+> 3000 번 포트가 이미 사용 중이라 다른 포트로 띄우면 백엔드 CORS 에 막힌다.
+> 백엔드의 허용 origin 을 함께 바꿔 준다.
+>
+> ```bash
+> CORS_ALLOWED_ORIGINS=http://localhost:3100 \
+>   docker compose -f docker/docker-compose.yml up -d --force-recreate api
+> ```
+
 ## 스크립트
 
 | 명령 | 설명 |
