@@ -56,10 +56,10 @@ export function LoginForm() {
       <Image
         src="/pius-logo.png"
         alt="PiUS"
-        width={72}
-        height={68}
+        width={46}
+        height={64}
         priority
-        className="mx-auto mb-5.5 h-auto w-[72px]"
+        className="mx-auto mb-5.5 h-16 w-auto"
       />
 
       <h2 className="font-heading mb-0.5 text-[22px] leading-tight">로그인</h2>
