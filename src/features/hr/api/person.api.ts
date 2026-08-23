@@ -12,6 +12,7 @@ export type PersonListParams = {
   q?: string;
   status?: 'ALL' | 'ACTIVE' | 'RESIGNED';
   page?: number;
+  size?: number;
 };
 
 export const personApi = {
