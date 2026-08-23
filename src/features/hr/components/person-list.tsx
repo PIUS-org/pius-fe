@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { employmentStatusTone } from '@/entities/person/status';
 import type { PersonListItem } from '@/entities/person/types';
 import { formatDate } from '@/shared/lib/format';
+import { useListParams } from '@/shared/lib/use-list-params';
 import { Button } from '@/shared/ui/button';
 import { Card } from '@/shared/ui/card';
 import { EmptyState } from '@/shared/ui/empty-state';
@@ -13,7 +14,6 @@ import { Pagination } from '@/shared/ui/pagination';
 import { Segmented } from '@/shared/ui/segmented';
 import { Table, type Column } from '@/shared/ui/table';
 import { Tag } from '@/shared/ui/tag';
-import { useListParams } from '../hooks/use-list-params';
 import { usePersonList } from '../hooks/use-persons';
 
 const STATUS_FILTERS = [
