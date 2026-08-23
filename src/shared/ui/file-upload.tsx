@@ -4,6 +4,13 @@ import { useRef } from 'react';
 import { cn } from '@/shared/lib/cn';
 import { Button } from './button';
 
+/**
+ * 이 컴포넌트가 그리는 데 필요한 최소 정보.
+ *
+ * 도메인 타입(`entities/person/types` 의 `Attachment`)을 직접 참조하지 않는다 —
+ * `shared` 는 가장 아래 레이어라 위쪽을 알면 안 된다. 대신 제네릭으로 받아
+ * 콜백에는 호출한 쪽의 타입이 그대로 전달되게 한다.
+ */
 export type UploadedFile = {
   attachmentId: number;
   fileName: string;
@@ -12,11 +19,11 @@ export type UploadedFile = {
   createdAt: string;
 };
 
-type FileUploadProps = {
-  files: readonly UploadedFile[];
+type FileUploadProps<T extends UploadedFile> = {
+  files: readonly T[];
   onSelect?: (file: File) => void;
-  onOpen?: (file: UploadedFile) => void;
-  onDelete?: (file: UploadedFile) => void;
+  onOpen?: (file: T) => void;
+  onDelete?: (file: T) => void;
   /** 읽기 전용 — 용역 계정처럼 업로드 권한이 없을 때 */
   readOnly?: boolean;
   className?: string;
@@ -35,14 +42,14 @@ function fileKind(contentType: string): string {
 }
 
 /** 계약서 · 사업자등록증 목록과 업로드 영역. */
-export function FileUpload({
+export function FileUpload<T extends UploadedFile>({
   files,
   onSelect,
   onOpen,
   onDelete,
   readOnly,
   className,
-}: FileUploadProps) {
+}: FileUploadProps<T>) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   return (
