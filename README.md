@@ -9,7 +9,7 @@ PiUS 업무관리 시스템 v1.0 — Frontend
 
 | 구분 | 사용 기술 |
 | --- | --- |
-| Framework | Next.js 15 (App Router) |
+| Framework | Next.js 16 (App Router) |
 | Language | TypeScript |
 | Styling | Tailwind CSS v4 (`@theme` 토큰) |
 | Component | 자체 디자인 시스템 (CVA) + Radix (Dialog / Select) |
@@ -21,8 +21,8 @@ PiUS 업무관리 시스템 v1.0 — Frontend
 | 환경 | 용도 | 실행 |
 | --- | --- | --- |
 | `docker` | 로컬 개발 — Docker 로 띄운 백엔드(`localhost:8080`) 연동 | `npm run dev:docker` |
-| `dev` | 개발 서버 배포용 | `npm run build:dev` |
-| `prod` | 운영 배포용 | `npm run build:prod` |
+| `dev` | 배포 (Vercel) | Vercel 이 빌드한다 |
+| `prod` | 실사용 전환 시 추가 | — |
 
 로컬에서는 `docker` 환경만 사용합니다.
 
@@ -32,15 +32,34 @@ PiUS 업무관리 시스템 v1.0 — Frontend
 
 ## 배포
 
-배포 대상이 아직 정해지지 않았다. `next.config.ts` 에 `output: 'standalone'` 을 켜 두어
-컨테이너 배포로 결정되면 Dockerfile 작성만 남는다.
+**Vercel** 에 배포한다. `dev` 브랜치에 merge 하면 자동으로 새 배포가 올라간다.
+Next.js 를 네이티브로 빌드하므로 Dockerfile 은 없다.
 
-| 대상 | 필요한 것 |
+| | |
 | --- | --- |
-| Vercel | 추가 작업 없음. 환경변수만 주입 |
-| ECS · Cloud Run · 자체 서버 | multi-stage Dockerfile + `.dockerignore` |
+| 주소 | `https://admin.pius.co.kr` |
+| Production Branch | `dev` |
+| 함수 리전 | `icn1` (서울) — `vercel.json` 에서 지정 |
+| 백엔드 | `https://api.pius.co.kr` (Cloud Run · 도쿄) |
 
-어느 쪽이든 `.env.development` / `.env.production` 의 API 주소를 실제 값으로 바꿔야 한다.
+리전을 지정하는 이유는 기본값이 `iad1`(버지니아)이기 때문이다. 그대로 두면 BFF 인증
+호출이 한국 → 미국 → 도쿄를 왕복한다.
+
+### 환경변수 (Vercel Production 스코프)
+
+| 이름 | 반영 시점 |
+| --- | --- |
+| `NEXT_PUBLIC_APP_ENV` | 빌드 |
+| `NEXT_PUBLIC_API_BASE_URL` | **빌드 타임에 클라이언트 번들에 박힌다** — 바뀌면 재빌드 |
+| `API_INTERNAL_URL` | 런타임 |
+
+`NEXT_PUBLIC_API_BASE_URL` 이 빌드 타임 값이라 백엔드 주소로 Cloud Run 의 `*.run.app` URL 을
+쓰지 않는다. 서비스를 다시 만들 때마다 프론트를 재빌드해야 하기 때문이다.
+
+> **프리뷰 배포는 데이터 조회가 안 된다.** 프리뷰 URL 은 백엔드 CORS 허용 목록에 없다.
+> 프리뷰는 UI 확인용으로만 쓰고, 동작 확인은 `admin.pius.co.kr` 에서 한다.
+
+전체 구성과 배포 절차는 [인프라 구조](docs/INFRA.md) 를 본다.
 
 ## 빠른 시작
 
