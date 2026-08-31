@@ -245,7 +245,8 @@ options:
    - 출력된 `CNAME api → ghs.googlehosted.com` 을 등록업체 DNS 에 추가
    - 인증서 자동 발급까지 보통 15분, 최대 24시간
 9. **Vercel** — 프로젝트 연결 → Production Branch `dev` → 환경변수 → 커스텀 도메인
-   `admin.pius.co.kr` (`CNAME admin → cname.vercel-dns.com`)
+   `admin.pius.co.kr` (아래 DNS 표 참고)
+   - **Production Branch 는 대시보드에서 손으로 바꿔야 한다.** CLI·API 로 안 된다 (§4-1)
 10. 브라우저로 확인 — `siochoi` / `0000` 로그인 → 인사 목록 20명 → 첨부 업로드/다운로드
 
 ### Phase 2 — GitHub 에서 당겨오도록 전환
@@ -259,12 +260,37 @@ options:
 13. Vercel 은 Git 연동만으로 이미 `dev` merge 시 자동 배포된다
 14. `dev` 에 커밋 하나 푸시해 양쪽 다 새 리비전이 뜨는지 확인
 
+## 4-1. Vercel 에서 손으로 해야 하는 것
+
+### Production Branch 를 `dev` 로 바꾸기
+
+**CLI 로도 API 로도 안 된다.** `PATCH /v9/projects/{id}` 는 `link` 를 additional
+property 로 거부하고, `POST /v9/projects/{id}/link` 는 200 을 주면서도 값을 바꾸지 않는다.
+
+> Vercel 대시보드 → 프로젝트 → Settings → Git → **Production Branch** → `dev`
+
+기본값이 `main` 이라 **그대로 두면 `dev` 에 merge 해도 프로덕션 배포가 안 되고
+프리뷰 배포만 생긴다.** 프리뷰 URL 은 백엔드 CORS 목록에 없어서 데이터 조회가 실패한다.
+
+### 환경변수는 명시적으로 넣는다
+
+`vercel link` 가 저장소의 `.env.production` 을 읽어 환경변수를 자동으로 만들어 두는데,
+값이 `[SENSITIVE]` 로 가려져 CLI 로 확인할 수 없다. 확실히 하려면 지우고 다시 넣는다.
+
+```bash
+vercel env rm  NEXT_PUBLIC_API_BASE_URL production --yes
+printf 'https://api.pius.co.kr/api/v1' | vercel env add NEXT_PUBLIC_API_BASE_URL production
+```
+
+`preview` 스코프에도 같은 값을 넣어야 프리뷰 빌드가 깨지지 않는다 —
+`NEXT_PUBLIC_API_BASE_URL` 이 비면 `src/shared/config/env.ts` 가 빌드 중에 throw 한다.
+
 ### DNS 레코드 정리
 
 | 이름 | 타입 | 값 |
 | --- | --- | --- |
 | `api` | CNAME | `ghs.googlehosted.com` |
-| `admin` | CNAME | `cname.vercel-dns.com` |
+| `admin` | A | `76.76.21.21` |
 | (소유 확인) | TXT | Search Console 이 지정한 값 |
 
 ---
