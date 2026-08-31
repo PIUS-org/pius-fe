@@ -16,7 +16,7 @@ export default function LoginPage() {
     <div className="bg-bg grid min-h-screen grid-cols-[1.1fr_1fr]">
       <div className="bg-accent-900 text-bg flex flex-col justify-between px-[60px] py-14">
         <div className="font-heading text-xs tracking-[0.22em] uppercase opacity-65">
-          PiUS system &amp; consulting
+          PiUS Management System
         </div>
 
         <div>

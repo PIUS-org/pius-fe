@@ -249,16 +249,102 @@ options:
    - **Production Branch 는 대시보드에서 손으로 바꿔야 한다.** CLI·API 로 안 된다 (§4-1)
 10. 브라우저로 확인 — `siochoi` / `0000` 로그인 → 인사 목록 20명 → 첨부 업로드/다운로드
 
-### Phase 2 — GitHub 에서 당겨오도록 전환
+### Phase 2 — `dev` merge 자동 배포 (완료)
 
-11. Cloud Run 콘솔 → 서비스 → **지속적 배포 설정**
-    → GitHub 앱을 `PIUS-org` 에 설치 → 저장소 `pius-be`
-    → 브랜치 `^dev$`, 빌드 유형 **Dockerfile**, 경로 `docker/Dockerfile`
-    (빌드 컨텍스트는 저장소 루트 — compose 의 `context: ..` 와 같다)
-12. 트리거 생성 후 **환경변수와 도메인 매핑이 남아 있는지 확인한다.**
-    지속적 배포 설정이 서비스를 다시 구성하면서 값이 빠질 수 있다
-13. Vercel 은 Git 연동만으로 이미 `dev` merge 시 자동 배포된다
-14. `dev` 에 커밋 하나 푸시해 양쪽 다 새 리비전이 뜨는지 확인
+`dev` 에 merge 하면 양쪽 다 자동으로 올라간다.
+
+| | 방식 | 트리거 |
+| --- | --- | --- |
+| 프론트 | Vercel Git 연동 | Production Branch = `dev` |
+| 백엔드 | **GitHub Actions** (`.github/workflows/deploy.yml`) | `push: branches: [dev]` |
+
+#### 백엔드가 Cloud Build 트리거가 아닌 이유
+
+원래 계획은 Cloud Run 콘솔의 "지속적 배포"(Cloud Build 트리거)였다. 그런데
+`PIUS-org` 에 설치된 GitHub App 은 Vercel 하나뿐이고 **Cloud Build App 설치는
+브라우저에서만 가능하다.**
+
+바꾼 결과가 더 낫다 — **장기 키를 저장하지 않는다.** Workload Identity Federation 으로
+GitHub 가 발급한 단기 OIDC 토큰을 GCP 자격증명과 교환한다. 서비스 계정 JSON 키를
+저장소 시크릿에 넣는 흔한 방식보다 안전하다. 유출되어도 되돌릴 키 자체가 없다.
+
+#### 흐름
+
+```
+dev merge
+   ↓
+[test]    ./gradlew test  (201건, Testcontainers 는 러너의 Docker 사용)
+   ↓      실패하면 여기서 멈춘다
+[deploy]  WIF 인증 → docker build/push (러너에서 직접)
+   ↓                → gcloud run deploy --image
+   ↓                → /actuator/health 가 200 이 될 때까지 확인
+Cloud Run 새 리비전
+```
+
+#### 구성 요소
+
+| | |
+| --- | --- |
+| 서비스 계정 | `github-deployer@pius-org.iam.gserviceaccount.com` |
+| 역할 | `artifactregistry.writer` · `run.admin` · `iam.serviceAccountUser` — 이 셋뿐이다 |
+| WIF 풀 / 프로바이더 | `github` / `github` (issuer `token.actions.githubusercontent.com`) |
+| 저장소 시크릿 | `GCP_WIF_PROVIDER` · `GCP_SERVICE_ACCOUNT` (둘 다 리소스 이름일 뿐 비밀값 아님) |
+
+#### 안전장치 — 이게 없으면 아무 저장소나 우리 프로젝트에 배포할 수 있다
+
+프로바이더에 조건을 걸고, 서비스 계정 가장도 같은 저장소로만 묶었다.
+
+```
+attributeCondition:  assertion.repository == 'PIUS-org/pius-be'
+workloadIdentityUser: principalSet://.../attribute.repository/PIUS-org/pius-be
+```
+
+확인:
+
+```bash
+gcloud iam workload-identity-pools providers describe github \
+  --workload-identity-pool=github --location=global --project pius-org \
+  --format='value(attributeCondition)'
+```
+
+#### 왜 Cloud Build 를 쓰지 않고 러너에서 빌드하나
+
+처음에는 `gcloud builds submit` 을 썼는데 두 번 막혔다.
+
+1. `machineType: E2_HIGHCPU_8` 이 이 프로젝트 쿼터로 거부됨
+2. 소스 tarball 을 `gs://pius-org_cloudbuild` 에 올리는데, 서비스 계정에
+   `storage.objectAdmin` 을 줘도 **버킷 접근 권한이 없어** 계속 실패
+   (`The user is forbidden from accessing the bucket`)
+
+러너에서 `docker build && docker push` 하면 이 문제가 통째로 사라진다.
+필요한 권한은 `artifactregistry.writer` 하나뿐이고, 빌드 로그도 Actions 화면에서
+그대로 보인다. 러너가 amd64 라 에뮬레이션도 없다.
+
+그 덕에 서비스 계정 역할을 7개에서 **3개로 줄였다.**
+
+#### 배포 단계에서 절대 하면 안 되는 것
+
+**`gcloud run deploy` 에 `--set-env-vars` 를 넣지 않는다.** `--image` 만 주면 Cloud Run 이
+기존 환경변수 13개와 리소스 설정을 그대로 유지한다. 넣는 순간 DB 접속정보와
+`RRN_ENCRYPTION_KEY` 가 날아가는데, **그 키를 잃으면 이미 저장된 주민등록번호 암호문을
+영영 못 읽는다.**
+
+배포 후 확인:
+
+```bash
+gcloud run services describe pius-be-dev --region asia-northeast1 \
+  --format='value(spec.template.spec.containers[0].env[].name)' | tr ';' '\n' | wc -l   # 13
+```
+
+#### 되돌리는 법
+
+워크플로우 파일만 지우면 손 배포 상태로 돌아간다. 서비스와 환경변수는 그대로 남는다.
+리비전 롤백은:
+
+```bash
+gcloud run services update-traffic pius-be-dev --region asia-northeast1 \
+  --to-revisions <이전-리비전>=100
+```
 
 ## 4-1. Vercel 에서 손으로 해야 하는 것
 
