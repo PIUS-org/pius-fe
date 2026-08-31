@@ -7,8 +7,6 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.resolve(__dirname),
   },
-  // 컨테이너 이미지 크기를 줄이기 위한 standalone 출력 (#10 의 Dockerfile 에서 사용)
-  output: 'standalone',
 };
 
 export default nextConfig;
