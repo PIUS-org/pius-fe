@@ -100,6 +100,7 @@ cd ../backend && docker compose -f docker/docker-compose.yml up -d
 - [디자인 시스템](docs/DESIGN_SYSTEM.md)
 - [폴더 구조](docs/FOLDER_STRUCTURE.md)
 - [개발 컨벤션](docs/CONVENTION.md)
+- [인프라 구조](docs/INFRA.md) — 배포 구성 · 환경변수 · 배포 절차
 
 ## 브랜치 전략
 
