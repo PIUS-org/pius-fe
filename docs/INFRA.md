@@ -47,6 +47,18 @@
 | 이미지 | `asia-northeast1-docker.pkg.dev/pius-org/pius/pius-be:<git-sha>` |
 | 설정 | `cpu=1 memory=512Mi maxScale=2 concurrency=80 startup-cpu-boost=true cpu-throttling=true` |
 | Supabase | 프로젝트 `eduutxepqivomhdasdwh` · 리전 `ap-northeast-2` · PostgreSQL 17.6 |
+| R2 버킷 | `pms-storage-dev` (APAC) |
+
+배포 환경에서 확인된 것:
+
+| 항목 | 결과 |
+| --- | --- |
+| Flyway | Supabase 에 테이블 8개 생성 |
+| 데모 시드 | 인력 20 · 계정 20 · 거래처 9 · 프로젝트 14 · 참여인력 28 |
+| 로그인 | `siochoi` / `0000` → 200 |
+| R2 업로드 | 객체 생성 확인 (`PROJECT_CONTRACT/1/<uuid>.pdf`) |
+| R2 다운로드 | 200, `Content-Disposition` 한글 파일명 규격(RFC 5987) 정상 |
+| 콜드 스타트 | 기동 25.8초. 실제 API 는 리비전 전환 직후에도 200 |
 
 | 구성요소 | 선택 | 이유 |
 | --- | --- | --- |
@@ -97,7 +109,7 @@
 | `PIUS_SEED_ENABLED` | `true` | 리뷰 환경 한정 |
 | `PIUS_STORAGE_TYPE` | `r2` | |
 | `PIUS_STORAGE_R2_ACCOUNT_ID` | | |
-| `PIUS_STORAGE_R2_BUCKET` | `pius-attachments-dev` | |
+| `PIUS_STORAGE_R2_BUCKET` | `pms-storage-dev` | |
 | `PIUS_STORAGE_R2_ACCESS_KEY_ID` | | |
 | `PIUS_STORAGE_R2_SECRET_ACCESS_KEY` | | |
 
@@ -208,7 +220,7 @@ options:
 ### Phase 1 — 손으로 띄워서 정상 구동 확인
 
 1. **Supabase** 프로젝트 생성 (리전 `ap-northeast-2` 서울) → Session pooler 문자열 확보
-2. **R2** 버킷 `pius-attachments-dev` 생성 → API 토큰 (Object Read & Write) 발급
+2. **R2** 버킷 `pms-storage-dev` 생성 → API 토큰 (Object Read & Write) 발급
 3. **GCP** 프로젝트 생성, 결제 계정 연결, `run` · `cloudbuild` · `artifactregistry` API 활성화
 4. Artifact Registry 저장소 `pius` (도쿄) 생성 + **정리 정책**(최근 3개)
 5. 키 생성 — `openssl rand -base64 48` (JWT), `openssl rand -base64 32` (RRN)
