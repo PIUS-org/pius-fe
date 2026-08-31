@@ -37,6 +37,17 @@
         Artifact Registry (도쿄) ──▶ Cloud Run 새 리비전
 ```
 
+### 실제 배포된 것 (2026-08-31 기준)
+
+| | |
+| --- | --- |
+| GCP 프로젝트 | `pius-org` (955451033095) |
+| Cloud Run 서비스 | `pius-be-dev` · `asia-northeast1` |
+| 기본 URL | `https://pius-be-dev-3rxtpfxv3a-an.a.run.app` (도메인 매핑 전) |
+| 이미지 | `asia-northeast1-docker.pkg.dev/pius-org/pius/pius-be:<git-sha>` |
+| 설정 | `cpu=1 memory=512Mi maxScale=2 concurrency=80 startup-cpu-boost=true cpu-throttling=true` |
+| Supabase | 프로젝트 `eduutxepqivomhdasdwh` · 리전 `ap-northeast-2` · PostgreSQL 17.6 |
+
 | 구성요소 | 선택 | 이유 |
 | --- | --- | --- |
 | 백엔드 | Cloud Run `asia-northeast1` | 컨테이너를 그대로 올릴 수 있고 유휴 시 0 으로 줄어든다 |
@@ -131,6 +142,67 @@ Cloud Run 은 기본적으로 IPv6 로 나가지 못한다. 그냥 연결하면 
 
 ---
 
+## 3-1. Cloud Run 에서 주의할 것 (실제로 막혔던 것들)
+
+### CPU 스로틀링이 데모 시더를 굶긴다
+
+`DemoDataSeeder` 는 `ApplicationRunner` 라 **Tomcat 이 포트를 연 뒤에** 돈다.
+Cloud Run 은 요청을 처리하지 않는 동안 CPU 를 거의 0 으로 조이기 때문에, BCrypt 해싱
+20회가 포함된 시딩이 사실상 진행되지 않는다.
+
+증상이 헷갈린다 — 기동 로그는 멀쩡하다.
+
+```
+Started PiusErpApplication in 25.794 seconds     ← 정상으로 보인다
+/actuator/health → {"status":"OUT_OF_SERVICE"}   ← ApplicationReadyEvent 가 안 뜬다
+테이블 8개는 생성됨, 시드는 0건
+```
+
+**최초 1회만** CPU 상시 할당으로 올려 시딩을 끝내고 되돌린다.
+
+```bash
+gcloud run services update pius-be-dev --region asia-northeast1 --no-cpu-throttling
+#  health 가 UP 이 되고 시드가 들어간 것을 확인한 뒤
+gcloud run services update pius-be-dev --region asia-northeast1 --cpu-throttling
+```
+
+시더는 멱등해서 이후 콜드 스타트에서는 `count()` 한 번으로 끝난다.
+
+> **상시 할당으로 두면 안 된다.** 인스턴스가 살아있는 내내 vCPU 가 과금돼
+> 무료 티어(월 180k vCPU-s)를 넘긴다. 리뷰 트래픽만으로도 초과한다.
+
+같은 이유로, 앞으로 **요청 밖에서 도는 무거운 작업을 추가하면 같은 함정에 빠진다.**
+
+### 리비전 전환 직후 `/actuator/health` 가 잠깐 503 이다
+
+새 리비전이 뜬 직후 몇 초간 readiness 가 `OUT_OF_SERVICE` 라 헬스 엔드포인트가 503 을
+준다. **실제 API 는 이 구간에도 정상 응답한다**(로그인 200 확인). Cloud Run 이 포트 개방
+여부로 트래픽을 라우팅하고 actuator readiness 를 보지 않기 때문이다.
+
+### 이미지 빌드
+
+`gcloud builds submit --tag` 은 저장소 루트의 `Dockerfile` 을 찾는다. 우리 것은
+`docker/Dockerfile` 이라 `--config` 로 cloudbuild 설정을 줘야 한다.
+
+```yaml
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args: ['build', '-f', 'docker/Dockerfile', '-t', '<image>', '.']
+images: ['<image>']
+options:
+  logging: CLOUD_LOGGING_ONLY
+```
+
+`machineType: E2_HIGHCPU_8` 은 이 프로젝트 쿼터로 거부된다. 기본 머신 타입을 쓴다 —
+무료 티어(월 2,500 빌드분) 대상이기도 하다. 빌드는 약 4분 걸린다.
+
+### R2 버킷은 오브젝트 토큰으로 만들 수 없다
+
+*Object Read & Write* 토큰은 `CreateBucket` · `ListBuckets` 에 `AccessDenied` 를 준다.
+버킷은 Cloudflare 대시보드에서 미리 만들어 둔다. 오브젝트 읽기/쓰기는 이 토큰으로 된다.
+
+---
+
 ## 4. 배포 절차
 
 ### Phase 1 — 손으로 띄워서 정상 구동 확인
@@ -148,7 +220,13 @@ Cloud Run 은 기본적으로 IPv6 로 나가지 못한다. 그냥 연결하면 
      --memory 512Mi --cpu 1 --max-instances 2 --cpu-boost \
      --set-env-vars SPRING_PROFILES_ACTIVE=dev,PIUS_SEED_ENABLED=true,...
    ```
-7. `curl <run.app URL>/actuator/health` → `UP`. Supabase 에 테이블 8개와 시드가 들어갔는지 확인
+7. **최초 1회** CPU 상시 할당으로 올려 시딩을 끝낸다 (§3-1 참고)
+   ```bash
+   gcloud run services update pius-be-dev --region asia-northeast1 --no-cpu-throttling
+   #  health 가 UP 이 되면
+   gcloud run services update pius-be-dev --region asia-northeast1 --cpu-throttling
+   ```
+   `/actuator/health` → `UP`, Supabase 에 테이블 8개와 시드(인력 20명)가 들어갔는지 확인
 8. **도메인 연결** (인증서 발급에 시간이 걸리므로 여기서 시작한다)
    - Google Search Console 에서 `pius.co.kr` 소유 확인 (등록업체 DNS 에 TXT)
    - `gcloud beta run domain-mappings create --service pius-be-dev --domain api.pius.co.kr --region asia-northeast1`
