@@ -92,8 +92,10 @@ export function PersonInfoTab({ person }: { person: PersonDetail }) {
   // 퇴사일을 "새로" 지정한 경우에만 경고한다. 이미 있던 날짜를 고치는 건 해당 없다.
   const settingLeaveDate = !original.leaveAt && Boolean(draft.leaveAt);
   const [handoverOpen, setHandoverOpen] = useState(false);
-  // 창이 열릴 때만 부른다. 정보 탭을 보는 내내 프로젝트 목록을 들고 있을 이유가 없다.
-  const affected = usePersonProjects(person.personId, handoverOpen);
+  // 날짜를 고른 시점부터 미리 가져온다. 저장을 누를 때는 대개 준비돼 있어서,
+  // 인수인계할 것이 없으면 창을 띄우지 않고 바로 저장할 수 있다.
+  // 정보 탭을 여는 것만으로는 부르지 않는다.
+  const affected = usePersonProjects(person.personId, settingLeaveDate || handoverOpen);
 
   /**
    * 인수인계가 필요한 프로젝트.
@@ -109,7 +111,9 @@ export function PersonInfoTab({ person }: { person: PersonDetail }) {
   );
 
   function requestSave() {
-    if (settingLeaveDate) {
+    // 조회가 아직이면 창을 열어 로딩을 보여준다. 넘길 프로젝트가 확실히 없을 때만
+    // 창을 건너뛴다 — 아무것도 없는데 확인을 요구하면 성가시기만 하다.
+    if (settingLeaveDate && (affected.isPending || handoverTargets.length > 0)) {
       setHandoverOpen(true);
       return;
     }
