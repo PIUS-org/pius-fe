@@ -1,7 +1,11 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { ProjectMemberRequest, ProjectUpdateRequest } from '@/entities/project/types';
+import type {
+  ProjectMemberRequest,
+  ProjectReceiptRequest,
+  ProjectUpdateRequest,
+} from '@/entities/project/types';
 import { clientApi, clientKeys } from '@/features/client/api/client.api';
 import { personApi, personKeys } from '@/features/hr/api/person.api';
 import { projectApi, projectKeys, type ProjectListParams } from '../api/project.api';
@@ -61,6 +65,40 @@ export function useCloseProject(projectId: number) {
       invalidateRelated(queryClient, projectId);
     },
   });
+}
+
+/**
+ * 수금 원장.
+ *
+ * 프로젝트 수령액은 이 합계라서, 수금이 바뀌면 프로젝트 상세와 거래처 누적액이
+ * 함께 갱신되어야 한다. `invalidateRelated` 가 그 범위를 이미 담당한다.
+ */
+export function useProjectReceipts(projectId: number) {
+  const queryClient = useQueryClient();
+  const refresh = () => {
+    queryClient.invalidateQueries({ queryKey: projectKeys.receipts(projectId) });
+    invalidateRelated(queryClient, projectId);
+  };
+
+  return {
+    list: useQuery({
+      queryKey: projectKeys.receipts(projectId),
+      queryFn: () => projectApi.receipts(projectId),
+    }),
+    add: useMutation({
+      mutationFn: (body: ProjectReceiptRequest) => projectApi.addReceipt(projectId, body),
+      onSuccess: refresh,
+    }),
+    update: useMutation({
+      mutationFn: ({ receiptId, body }: { receiptId: number; body: ProjectReceiptRequest }) =>
+        projectApi.updateReceipt(projectId, receiptId, body),
+      onSuccess: refresh,
+    }),
+    remove: useMutation({
+      mutationFn: (receiptId: number) => projectApi.removeReceipt(projectId, receiptId),
+      onSuccess: refresh,
+    }),
+  };
 }
 
 export function useProjectMembers(projectId: number) {

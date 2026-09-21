@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { clientStatusTone } from '@/entities/client/status';
-import type { ClientDetail, ClientUpdateRequest } from '@/entities/client/types';
+import type { ClientDetail, ClientManager, ClientUpdateRequest } from '@/entities/client/types';
 import { isApiError } from '@/shared/api/error';
 import { formatBizRegNo, formatPhone } from '@/shared/lib/format';
 import { Button } from '@/shared/ui/button';
@@ -62,6 +62,49 @@ export function ClientBasicTab({ client }: { client: ClientDetail }) {
       } else {
         showToast('일시적인 오류가 발생했습니다.');
       }
+    }
+  }
+
+  /** 수정 대상. null 이면 창이 닫힌 상태다. */
+  const [editing, setEditing] = useState<ClientManager | null>(null);
+  const [editError, setEditError] = useState<string | null>(null);
+  /** 삭제 확인 대상. */
+  const [removing, setRemoving] = useState<ClientManager | null>(null);
+  const [removeError, setRemoveError] = useState<string | null>(null);
+
+  async function saveManager(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!editing) return;
+    const form = new FormData(event.currentTarget);
+    const value = (key: string) => String(form.get(key) ?? '').trim();
+
+    setEditError(null);
+    try {
+      await managers.update.mutateAsync({
+        managerId: editing.managerId,
+        body: {
+          name: value('name'),
+          title: value('title'),
+          phone: value('phone'),
+          email: value('email'),
+        },
+      });
+      setEditing(null);
+      showToast('담당자 정보를 저장했습니다.');
+    } catch (error) {
+      setEditError(isApiError(error) ? error.message : '저장에 실패했습니다.');
+    }
+  }
+
+  async function confirmRemoveManager() {
+    if (!removing) return;
+    setRemoveError(null);
+    try {
+      await managers.remove.mutateAsync(removing.managerId);
+      setRemoving(null);
+      showToast(`${removing.name} 담당자를 삭제했습니다.`);
+    } catch (error) {
+      setRemoveError(isApiError(error) ? error.message : '삭제에 실패했습니다.');
     }
   }
 
@@ -226,22 +269,33 @@ export function ClientBasicTab({ client }: { client: ClientDetail }) {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => managers.remove.mutate(manager.managerId)}
+                  aria-label={`${manager.name} 수정`}
+                  onClick={() => {
+                    setEditError(null);
+                    setEditing(manager);
+                  }}
+                >
+                  수정
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  aria-label={`${manager.name} 삭제`}
+                  onClick={() => {
+                    setRemoveError(null);
+                    setRemoving(manager);
+                  }}
                 >
                   삭제
                 </Button>
               </div>
             ))
           )}
-          <p className="text-muted mt-3 text-[11.5px]">담당자 항목은 추후 상세 기획 예정입니다.</p>
         </Card>
 
         <Card className="px-5.5 py-5">
           <CardKicker className="mb-2.5">진행여부</CardKicker>
-          <div className="flex items-center gap-2.5">
-            <Tag tone={clientStatusTone(client.summary.status)}>{client.summary.statusLabel}</Tag>
-            <span className="text-muted text-[12.5px]">프로젝트 상태로 자동 판정</span>
-          </div>
+          <Tag tone={clientStatusTone(client.summary.status)}>{client.summary.statusLabel}</Tag>
         </Card>
       </div>
 
@@ -274,6 +328,86 @@ export function ClientBasicTab({ client }: { client: ClientDetail }) {
             </Button>
           </div>
         </form>
+      </Dialog>
+
+      <Dialog
+        open={editing !== null}
+        onOpenChange={(next) => {
+          if (!next) setEditing(null);
+        }}
+        title="담당자 수정"
+        description="이름 · 직책 · 연락처를 바꿉니다."
+        width={460}
+      >
+        {editing && (
+          // key 를 주어 다른 담당자를 열면 입력값이 새로 잡히게 한다.
+          <form key={editing.managerId} onSubmit={saveManager}>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="이름" required>
+                {({ id }) => (
+                  <Input id={id} name="name" defaultValue={editing.name} required autoFocus />
+                )}
+              </Field>
+              <Field label="직책">
+                {({ id }) => <Input id={id} name="title" defaultValue={editing.title ?? ''} />}
+              </Field>
+              <Field label="전화번호">
+                {({ id }) => <Input id={id} name="phone" defaultValue={editing.phone ?? ''} />}
+              </Field>
+              <Field label="이메일">
+                {({ id }) => (
+                  <Input id={id} name="email" type="email" defaultValue={editing.email ?? ''} />
+                )}
+              </Field>
+            </div>
+
+            {editError && (
+              <p role="alert" className="text-danger mt-3 text-[12.5px]">
+                {editError}
+              </p>
+            )}
+
+            <div className="mt-4 flex justify-end gap-2">
+              <Button variant="secondary" onClick={() => setEditing(null)}>
+                취소
+              </Button>
+              <Button type="submit" variant="primary" disabled={managers.update.isPending}>
+                저장
+              </Button>
+            </div>
+          </form>
+        )}
+      </Dialog>
+
+      <Dialog
+        open={removing !== null}
+        onOpenChange={(next) => {
+          if (!next) setRemoving(null);
+        }}
+        title="담당자 삭제"
+        description={
+          removing ? `${removing.name} 담당자를 삭제합니다. 되돌릴 수 없습니다.` : undefined
+        }
+        actions={
+          <>
+            <Button variant="secondary" onClick={() => setRemoving(null)}>
+              취소
+            </Button>
+            <Button
+              variant="danger"
+              onClick={confirmRemoveManager}
+              disabled={managers.remove.isPending}
+            >
+              삭제
+            </Button>
+          </>
+        }
+      >
+        {removeError && (
+          <p role="alert" className="text-danger mt-3 text-[12.5px]">
+            {removeError}
+          </p>
+        )}
       </Dialog>
     </div>
   );

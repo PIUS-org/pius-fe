@@ -23,6 +23,14 @@ export const personApi = {
 
   projects: (personId: number) => api.get<PersonProjectItem[]>(`/persons/${personId}/projects`),
 
+  /**
+   * 주민등록번호 원본. 마스터만 호출할 수 있다.
+   *
+   * 상세 응답에 섞지 않고 분리한 것은 서버 쪽 결정이다 — 화면을 열 때마다
+   * 평문이 오가지 않게 하려는 것이라, 프론트도 "보기" 를 눌렀을 때만 부른다.
+   */
+  rrn: (personId: number) => api.get<{ rrn: string }>(`/persons/${personId}/rrn`),
+
   create: (body: PersonCreateRequest) =>
     api.post<{ personId: number; accountId: number; loginId: string }>('/persons', body),
 

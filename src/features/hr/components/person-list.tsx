@@ -35,19 +35,26 @@ export function PersonList() {
     {
       key: 'no',
       header: 'No',
-      width: 46,
+      width: 56,
       cell: (_row) => null, // 아래에서 인덱스로 채운다
     },
-    { key: 'name', header: '이름', cell: (r) => <span className="font-medium">{r.name}</span> },
-    { key: 'phone', header: '전화번호', nowrap: true, cell: (r) => r.phone },
+    {
+      key: 'name',
+      header: '이름',
+      width: 120,
+      cell: (r) => <span className="font-medium">{r.name}</span>,
+    },
+    { key: 'phone', header: '전화번호', width: 150, nowrap: true, cell: (r) => r.phone },
     { key: 'type', header: '고용형태', width: 96, cell: (r) => r.employmentTypeLabel },
-    { key: 'job', header: '직무', cell: (r) => r.jobTitle ?? '-' },
+    { key: 'job', header: '직무', width: 160, cell: (r) => r.jobTitle ?? '-' },
     {
       key: 'dates',
       header: '입사일 · 퇴사일',
-      width: 190,
+      width: 200,
       nowrap: true,
       tabular: true,
+      // formatDateRange 를 쓰지 않는다 — 그쪽은 종료일이 없으면 "2023-08-21 ~ -" 를
+      // 만드는데, 재직자에게는 입사일만 보여야 한다.
       cell: (r) => (r.leaveAt ? `${r.hiredAt} ~ ${r.leaveAt}` : formatDate(r.hiredAt)),
     },
     {
@@ -137,6 +144,9 @@ export function PersonList() {
         <>
           <Card className="px-4 pt-1.5 pb-0.5">
             <Table
+              // 폭을 고정한다. auto layout 이면 퇴사 필터에서 "입사일 ~ 퇴사일" 이 길어지며
+              // 그 폭을 이웃 열에서 빼앗아 고용형태·직무가 좌우로 밀린다.
+              fixed
               columns={numbered}
               rows={rows}
               rowKey={(row) => row.personId}

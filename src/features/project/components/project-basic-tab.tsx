@@ -14,6 +14,7 @@ import { Input } from '@/shared/ui/input';
 import { Textarea } from '@/shared/ui/textarea';
 import { useToast } from '@/shared/ui/toast';
 import { useUpdateProject } from '../hooks/use-projects';
+import { ProjectReceiptCard } from './project-receipt-card';
 
 export function ProjectBasicTab({ project }: { project: ProjectDetail }) {
   const account = useAccount();
@@ -81,6 +82,7 @@ export function ProjectBasicTab({ project }: { project: ProjectDetail }) {
 
         {canManage && (
           <>
+            {/* 수령액은 저장된 숫자가 아니라 수금 원장의 합계다. 관리는 아래 수금 카드에서 한다. */}
             <DetailRow label="수령액" labelWidth={100}>
               <span className="tabular">
                 {displayAmount(project.receivedAmount, project.receivedAmountMasked)}
@@ -125,6 +127,13 @@ export function ProjectBasicTab({ project }: { project: ProjectDetail }) {
           </div>
         )}
       </Card>
+
+      {/* 용역에게는 금액이 내려오지 않으므로 카드 자체를 렌더하지 않는다. */}
+      {canManage && (
+        <div className="col-start-1">
+          <ProjectReceiptCard project={project} />
+        </div>
+      )}
     </div>
   );
 }

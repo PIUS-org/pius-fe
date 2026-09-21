@@ -131,13 +131,6 @@ export function ClientWorkTab({ client, active }: { client: ClientDetail; active
             <span className="tabular text-accent-700">{formatMoney(summary.unpaidAmount)}</span>
           </div>
         </Card>
-
-        <Card className="px-5.5 py-5">
-          <CardKicker className="mb-2">계정관리</CardKicker>
-          <p className="text-muted text-[12.5px]">
-            개발 중 사용한 계정 정보를 저장합니다. 추후 상세 기획 예정.
-          </p>
-        </Card>
       </div>
     </div>
   );

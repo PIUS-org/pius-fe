@@ -24,8 +24,14 @@
   --color-muted-strong: color-mix(in srgb, #1d1f20 70%, transparent);
   --color-muted-weak: color-mix(in srgb, #1d1f20 45%, transparent);
 
+  /* 플레이스홀더 전용. muted-weak(45%) 로는 입력된 값과 구분이 안 됐다.
+     muted-weak 를 흐리게 바꾸지 않는 이유는 목록의 No 열·용역비·계약금액
+     kicker 등 여러 곳이 같이 옅어지기 때문이다. */
+  --color-placeholder: color-mix(in srgb, #1d1f20 28%, transparent);
+
   /* 계약기간 초과 표시 전용. 시스템의 유일한 경고색이다. */
   --color-danger: #c0392b;
+  --color-danger-strong: #a33124;
 
   /* ── 톤 램프 ───────────────────────────────────────────────────
      OKLCH 단일 명도 스케일에서 생성되어, 같은 단계는 역할이 달라도

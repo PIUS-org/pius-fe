@@ -33,6 +33,9 @@ export function ProjectMemberTab({ project }: { project: ProjectDetail }) {
   const [pickedPersonId, setPickedPersonId] = useState('');
   const [fee, setFee] = useState('');
   const [addError, setAddError] = useState<string | null>(null);
+  /** 제거 확인 대상. null 이면 창이 닫힌 상태다. */
+  const [removing, setRemoving] = useState<{ memberId: number; name: string } | null>(null);
+  const [removeError, setRemoveError] = useState<string | null>(null);
 
   const persons = usePersonOptions(addOpen);
   const canManage = canManageProject(account.role);
@@ -62,6 +65,18 @@ export function ProjectMemberTab({ project }: { project: ProjectDetail }) {
       showToast('참여인력을 추가했습니다.');
     } catch (error) {
       setAddError(isApiError(error) ? error.message : '추가에 실패했습니다.');
+    }
+  }
+
+  async function confirmRemove() {
+    if (!removing) return;
+    setRemoveError(null);
+    try {
+      await members.remove.mutateAsync(removing.memberId);
+      setRemoving(null);
+      showToast(`${removing.name} 님을 참여인력에서 제거했습니다.`);
+    } catch (error) {
+      setRemoveError(isApiError(error) ? error.message : '제거에 실패했습니다.');
     }
   }
 
@@ -166,7 +181,10 @@ export function ProjectMemberTab({ project }: { project: ProjectDetail }) {
                     variant="ghost"
                     size="sm"
                     aria-label={`${member.name} 제거`}
-                    onClick={() => members.remove.mutate(member.memberId)}
+                    onClick={() => {
+                      setRemoveError(null);
+                      setRemoving({ memberId: member.memberId, name: member.name });
+                    }}
                   >
                     제거
                   </Button>
@@ -248,6 +266,35 @@ export function ProjectMemberTab({ project }: { project: ProjectDetail }) {
             </Button>
           </div>
         </form>
+      </Dialog>
+
+      <Dialog
+        open={removing !== null}
+        onOpenChange={(next) => {
+          if (!next) setRemoving(null);
+        }}
+        title="참여인력 제거"
+        description={
+          removing
+            ? `${removing.name} 님을 이 프로젝트의 참여인력에서 제거합니다. 되돌릴 수 없습니다.`
+            : undefined
+        }
+        actions={
+          <>
+            <Button variant="secondary" onClick={() => setRemoving(null)}>
+              취소
+            </Button>
+            <Button variant="danger" onClick={confirmRemove} disabled={members.remove.isPending}>
+              제거
+            </Button>
+          </>
+        }
+      >
+        {removeError && (
+          <p role="alert" className="text-danger mt-3 text-[12.5px]">
+            {removeError}
+          </p>
+        )}
       </Dialog>
     </Card>
   );
