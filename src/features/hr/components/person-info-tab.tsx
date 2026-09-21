@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { canReadRrn } from '@/entities/account/role';
 import {
   employmentStatusTone,
   hiredAtLabel,
@@ -9,6 +10,7 @@ import {
 } from '@/entities/person/status';
 import type { PersonDetail, PersonUpdateRequest } from '@/entities/person/types';
 import { useAttachments } from '@/features/attachment/use-attachments';
+import { useAccount } from '@/features/auth/auth-provider';
 import { isApiError } from '@/shared/api/error';
 import { formatPhone } from '@/shared/lib/format';
 import { Button } from '@/shared/ui/button';
@@ -19,7 +21,7 @@ import { Input } from '@/shared/ui/input';
 import { RadioGroup } from '@/shared/ui/radio';
 import { Tag } from '@/shared/ui/tag';
 import { useToast } from '@/shared/ui/toast';
-import { personKeys } from '../api/person.api';
+import { personApi, personKeys } from '../api/person.api';
 import { useUpdatePerson } from '../hooks/use-persons';
 
 /** 편집 가능한 값만 모은 초안. 저장 전까지 서버 데이터를 건드리지 않는다. */
@@ -43,6 +45,28 @@ function draftOf(person: PersonDetail): Draft {
 
 export function PersonInfoTab({ person }: { person: PersonDetail }) {
   const { showToast } = useToast();
+
+  // 주민등록번호 원본. 마스터가 "보기" 를 눌렀을 때만 서버에서 한 번 가져온다.
+  const account = useAccount();
+  const [rrn, setRrn] = useState<string | null>(null);
+  const [rrnError, setRrnError] = useState<string | null>(null);
+  const [rrnLoading, setRrnLoading] = useState(false);
+
+  async function toggleRrn() {
+    if (rrn) {
+      setRrn(null);
+      return;
+    }
+    setRrnError(null);
+    setRrnLoading(true);
+    try {
+      setRrn((await personApi.rrn(person.personId)).rrn);
+    } catch (error) {
+      setRrnError(isApiError(error) ? error.message : '주민등록번호를 불러오지 못했습니다.');
+    } finally {
+      setRrnLoading(false);
+    }
+  }
   const update = useUpdatePerson(person.personId);
   const attachments = useAttachments(
     'PERSON_CONTRACT',
@@ -98,7 +122,19 @@ export function PersonInfoTab({ person }: { person: PersonDetail }) {
           <CardKicker className="mb-1.5">사람 정보</CardKicker>
           <DetailRow label="이름">{person.name}</DetailRow>
           <DetailRow label="주민번호">
-            <span className="tabular">{person.rrnMasked}</span>
+            <span className="flex items-center gap-2">
+              <span className="tabular">{rrn ?? person.rrnMasked}</span>
+              {canReadRrn(account.role) && (
+                <Button variant="ghost" size="sm" onClick={toggleRrn} disabled={rrnLoading}>
+                  {rrn ? '가리기' : rrnLoading ? '불러오는 중…' : '보기'}
+                </Button>
+              )}
+            </span>
+            {rrnError && (
+              <span role="alert" className="text-danger mt-1 block text-[12.5px]">
+                {rrnError}
+              </span>
+            )}
           </DetailRow>
           <DetailRow label="전화번호">
             <Input
@@ -176,7 +212,8 @@ export function PersonInfoTab({ person }: { person: PersonDetail }) {
           )}
 
           <p className="text-muted mt-3.5 text-[11.5px] leading-relaxed">
-            주민등록번호는 마스킹되어 표시되며 접근권한이 제한됩니다.
+            주민등록번호는 마스킹되어 표시됩니다. 원본은 마스터 계정만 볼 수 있고, 조회 기록이
+            남습니다.
           </p>
         </Card>
       </div>

@@ -23,6 +23,14 @@ type TableProps<T> = {
   onRowClick?: (row: T) => void;
   /** 행이 없을 때 그릴 내용 */
   empty?: ReactNode;
+  /**
+   * 열 너비를 선언한 대로 고정한다 (`table-fixed`).
+   *
+   * 기본값이 `false` 인 이유는 auto layout 을 전제로 만든 기존 목록들이
+   * 많기 때문이다. 폭을 선언하지 않은 열이 갑자기 균등 분배되어 다 같이 깨진다.
+   * 켤 때는 **모든 열에 width 를 주어야** 한다.
+   */
+  fixed?: boolean;
   className?: string;
 };
 
@@ -32,13 +40,21 @@ type TableProps<T> = {
  * 행 클릭은 `div onClick` 이 아니라 키보드로도 열 수 있게 처리한다 —
  * 목업은 `tr onClick` 만 두고 있어 키보드 사용자가 상세로 갈 수 없다.
  */
-export function Table<T>({ columns, rows, rowKey, onRowClick, empty, className }: TableProps<T>) {
+export function Table<T>({
+  columns,
+  rows,
+  rowKey,
+  onRowClick,
+  empty,
+  fixed = false,
+  className,
+}: TableProps<T>) {
   if (rows.length === 0 && empty) {
     return <>{empty}</>;
   }
 
   return (
-    <table className={cn('w-full border-collapse text-sm', className)}>
+    <table className={cn('w-full border-collapse text-sm', fixed && 'table-fixed', className)}>
       <thead>
         <tr>
           {columns.map((column) => (

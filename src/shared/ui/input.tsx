@@ -6,7 +6,7 @@ import { cn } from '@/shared/lib/cn';
 export const inputClassName = cn(
   'w-full min-h-9 px-2.5 py-1.5 text-sm',
   'bg-surface text-text caret-accent border border-divider',
-  'placeholder:text-muted-weak',
+  'placeholder:text-placeholder',
   'hover:border-text/45 focus-visible:border-accent focus-visible:outline-offset-0',
   'read-only:text-muted read-only:hover:border-divider',
   'disabled:cursor-not-allowed disabled:opacity-50',

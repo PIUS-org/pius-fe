@@ -22,6 +22,8 @@ const buttonVariants = cva(
         secondary: 'border-divider text-text hover:bg-text/7 active:bg-text/14 bg-transparent',
         ghost:
           'hover:bg-accent/10 active:bg-accent/18 border-transparent bg-transparent text-accent',
+        /* 되돌리기 어려운 동작의 확인 버튼. 일반 확인과 눈으로 구분되어야 한다. */
+        danger: 'border-danger bg-danger text-bg hover:bg-danger-strong active:bg-danger-strong',
         /* 사이드바처럼 어두운 면 위에 놓이는 버튼 */
         inverse: 'border-bg/30 text-bg hover:bg-bg/10 active:bg-bg/20 bg-transparent',
       },
