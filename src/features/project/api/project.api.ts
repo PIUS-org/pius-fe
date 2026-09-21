@@ -4,6 +4,8 @@ import type {
   ProjectListItem,
   ProjectMember,
   ProjectMemberRequest,
+  ProjectReceipt,
+  ProjectReceiptRequest,
   ProjectStatus,
   ProjectUpdateRequest,
 } from '@/entities/project/types';
@@ -17,6 +19,17 @@ export type ProjectListParams = {
 };
 
 export const projectApi = {
+  receipts: (projectId: number) => api.get<ProjectReceipt[]>(`/projects/${projectId}/receipts`),
+
+  addReceipt: (projectId: number, body: ProjectReceiptRequest) =>
+    api.post<ProjectReceipt>(`/projects/${projectId}/receipts`, body),
+
+  updateReceipt: (projectId: number, receiptId: number, body: ProjectReceiptRequest) =>
+    api.patch<ProjectReceipt>(`/projects/${projectId}/receipts/${receiptId}`, body),
+
+  removeReceipt: (projectId: number, receiptId: number) =>
+    api.delete<void>(`/projects/${projectId}/receipts/${receiptId}`),
+
   list: (params: ProjectListParams) =>
     api.get<PageResponse<ProjectListItem>>('/projects', { query: { ...params } }),
 
@@ -47,4 +60,5 @@ export const projectKeys = {
   all: ['projects'] as const,
   list: (params: ProjectListParams) => [...projectKeys.all, 'list', params] as const,
   detail: (projectId: number) => [...projectKeys.all, 'detail', projectId] as const,
+  receipts: (projectId: number) => [...projectKeys.all, 'receipts', projectId] as const,
 };

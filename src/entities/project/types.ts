@@ -72,6 +72,8 @@ export type PersonProjectItem = {
   overdue: boolean;
   ownerName: string | null;
   role: string;
+  /** 이 사람이 업무 담당자인지. 참여 역할과 별개다. */
+  owned: boolean;
 };
 
 export type ProjectCreateRequest = {
@@ -99,4 +101,23 @@ export type ProjectMemberRequest = {
   role: string;
   outsourcingFee?: number | null;
   joinedAt?: string;
+};
+
+/** 수금 구분. 서버 enum 과 값이 같아야 한다. */
+export type ReceiptKind = 'ADVANCE' | 'INTERIM' | 'BALANCE' | 'ETC';
+
+export type ProjectReceipt = {
+  receiptId: number;
+  receivedOn: string;
+  amount: number;
+  kind: ReceiptKind;
+  kindLabel: string;
+  memo: string | null;
+};
+
+export type ProjectReceiptRequest = {
+  receivedOn: string;
+  amount: number | null;
+  kind: ReceiptKind;
+  memo?: string | null;
 };

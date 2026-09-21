@@ -55,10 +55,16 @@ export function useClientManagers(clientId: number) {
     onSuccess: refresh,
   });
 
+  const update = useMutation({
+    mutationFn: ({ managerId, body }: { managerId: number; body: ClientManagerRequest }) =>
+      clientApi.updateManager(clientId, managerId, body),
+    onSuccess: refresh,
+  });
+
   const remove = useMutation({
     mutationFn: (managerId: number) => clientApi.removeManager(clientId, managerId),
     onSuccess: refresh,
   });
 
-  return { add, remove };
+  return { add, update, remove };
 }

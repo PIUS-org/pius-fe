@@ -28,6 +28,9 @@ export const clientApi = {
   addManager: (clientId: number, body: ClientManagerRequest) =>
     api.post<ClientManager>(`/clients/${clientId}/managers`, body),
 
+  updateManager: (clientId: number, managerId: number, body: ClientManagerRequest) =>
+    api.patch<ClientManager>(`/clients/${clientId}/managers/${managerId}`, body),
+
   removeManager: (clientId: number, managerId: number) =>
     api.delete<void>(`/clients/${clientId}/managers/${managerId}`),
 };
