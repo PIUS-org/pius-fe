@@ -9,6 +9,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import type { AccountSummary } from '@/entities/account/types';
 import { setAccessToken, setRefreshHandler } from '@/shared/api/client';
 import { ApiError } from '@/shared/api/error';
@@ -30,6 +31,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({ status: 'loading' });
+  const queryClient = useQueryClient();
 
   /**
    * 재발급 성공 여부만 돌려준다.
@@ -86,12 +88,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const login = useCallback(async (loginId: string, password: string) => {
-    const result = await authApi.login(loginId, password);
-    setAccessToken(result.accessToken);
-    setState({ status: 'authenticated', account: result.account });
-    return result.account;
-  }, []);
+  const login = useCallback(
+    async (loginId: string, password: string) => {
+      const result = await authApi.login(loginId, password);
+      // 로그아웃을 거치지 않고 계정이 바뀌는 경로(세션 만료 후 재로그인)가 있다.
+      // 한쪽만 막으면 이전 계정의 응답이 남는다.
+      queryClient.clear();
+      setAccessToken(result.accessToken);
+      setState({ status: 'authenticated', account: result.account });
+      return result.account;
+    },
+    [queryClient],
+  );
 
   const logout = useCallback(async () => {
     try {
@@ -101,9 +109,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!(error instanceof ApiError)) throw error;
     } finally {
       setAccessToken(null);
+      // 캐시를 비우지 않으면 다음 계정이 같은 queryKey 를 그리는 순간
+      // 이전 계정이 받은 응답이 그대로 뜬다. 권한으로 가리는 값(금액·주민번호)이
+      // 섞여 있어 재조회가 끝날 때까지 낮은 권한에게 노출된다.
+      queryClient.clear();
       setState({ status: 'anonymous' });
     }
-  }, []);
+  }, [queryClient]);
 
   const value = useMemo(() => ({ state, login, logout }), [state, login, logout]);
 

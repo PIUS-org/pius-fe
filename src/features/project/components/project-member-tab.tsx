@@ -33,6 +33,9 @@ export function ProjectMemberTab({ project }: { project: ProjectDetail }) {
   const [pickedPersonId, setPickedPersonId] = useState('');
   const [fee, setFee] = useState('');
   const [addError, setAddError] = useState<string | null>(null);
+  /** 수정 대상. null 이면 창이 닫힌 상태다. */
+  const [editing, setEditing] = useState<ProjectDetail['members'][number] | null>(null);
+  const [editError, setEditError] = useState<string | null>(null);
   /** 제거 확인 대상. null 이면 창이 닫힌 상태다. */
   const [removing, setRemoving] = useState<{ memberId: number; name: string } | null>(null);
   const [removeError, setRemoveError] = useState<string | null>(null);
@@ -80,12 +83,26 @@ export function ProjectMemberTab({ project }: { project: ProjectDetail }) {
     }
   }
 
-  async function saveFee(memberId: number, value: string) {
+  async function saveMember(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!editing) return;
+    const form = new FormData(event.currentTarget);
+    const role = String(form.get('role') ?? '').trim();
+    // 정직원은 프로젝트별 용역비를 입력하지 않는다. 용역이어도 가려진 값이면
+    // 읽지도 못한 금액을 덮어쓰게 되므로 손대지 않는다.
+    const feeEditable = editing.employmentType === 'CONTRACTOR' && !editing.outsourcingFeeMasked;
+
+    setEditError(null);
     try {
-      await members.update.mutateAsync({ memberId, outsourcingFee: parseMoney(value) });
-      showToast('용역비를 저장했습니다.');
+      await members.update.mutateAsync({
+        memberId: editing.memberId,
+        role,
+        ...(feeEditable ? { outsourcingFee: parseMoney(String(form.get('fee') ?? '')) } : {}),
+      });
+      setEditing(null);
+      showToast(`${editing.name} 님의 정보를 저장했습니다.`);
     } catch (error) {
-      showToast(isApiError(error) ? error.message : '저장에 실패했습니다.');
+      setEditError(isApiError(error) ? error.message : '저장에 실패했습니다.');
     }
   }
 
@@ -114,7 +131,6 @@ export function ProjectMemberTab({ project }: { project: ProjectDetail }) {
         <p className="text-muted py-6 text-center text-[13px]">참여인력이 없습니다.</p>
       ) : (
         project.members.map((member) => {
-          const editableFee = canManage && member.employmentType === 'CONTRACTOR';
           return (
             <div key={member.memberId} className={`${GRID} border-text/8 border-b py-2.5 text-sm`}>
               <div>
@@ -143,39 +159,38 @@ export function ProjectMemberTab({ project }: { project: ProjectDetail }) {
               <div>{member.role}</div>
 
               <div>
-                {editableFee ? (
-                  <Input
-                    aria-label={`${member.name} 용역비`}
-                    className="tabular min-h-[30px] text-right text-[13px]"
-                    defaultValue={
-                      member.outsourcingFee ? formatMoneyInput(String(member.outsourcingFee)) : ''
-                    }
-                    onBlur={(event) => {
-                      const next = parseMoney(event.target.value);
-                      if (next !== member.outsourcingFee)
-                        void saveFee(member.memberId, event.target.value);
-                      event.target.value = next ? formatMoneyInput(String(next)) : '';
-                    }}
-                  />
-                ) : (
-                  <span
-                    className={
-                      member.employmentType === 'EMPLOYEE' ? 'text-muted-weak tabular' : 'tabular'
-                    }
-                  >
-                    {displayFee(
-                      member.outsourcingFee,
-                      member.outsourcingFeeMasked,
-                      member.employmentType,
-                    )}
-                  </span>
-                )}
+                {/* 수정은 다이얼로그 한 곳에서만 한다. 인라인 입력과 병행하면 경로가
+                    갈리고, 저장 실패 시 입력값이 남는 문제도 있었다. */}
+                <span
+                  className={
+                    member.employmentType === 'EMPLOYEE' ? 'text-muted-weak tabular' : 'tabular'
+                  }
+                >
+                  {displayFee(
+                    member.outsourcingFee,
+                    member.outsourcingFeeMasked,
+                    member.employmentType,
+                  )}
+                </span>
               </div>
 
               <div className="flex items-center gap-1.5">
                 <Tag tone={employmentStatusTone(member.employmentStatus)}>
                   {member.employmentStatusLabel}
                 </Tag>
+                {canManage && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    aria-label={`${member.name} 수정`}
+                    onClick={() => {
+                      setEditError(null);
+                      setEditing(member);
+                    }}
+                  >
+                    수정
+                  </Button>
+                )}
                 {canManage && (
                   <Button
                     variant="ghost"
@@ -294,6 +309,73 @@ export function ProjectMemberTab({ project }: { project: ProjectDetail }) {
           <p role="alert" className="text-danger mt-3 text-[12.5px]">
             {removeError}
           </p>
+        )}
+      </Dialog>
+
+      <Dialog
+        open={editing !== null}
+        onOpenChange={(next) => {
+          if (!next) setEditing(null);
+        }}
+        title="참여인력 수정"
+        description={editing ? `${editing.name} 님의 역할과 용역비를 바꿉니다.` : undefined}
+        width={440}
+      >
+        {editing && (
+          // key 를 주어 다른 인력을 열면 입력값이 새로 잡히게 한다.
+          <form key={editing.memberId} onSubmit={saveMember}>
+            <Field label="역할" required>
+              {({ id }) => (
+                <Input id={id} name="role" defaultValue={editing.role} required autoFocus />
+              )}
+            </Field>
+
+            {editing.employmentType === 'CONTRACTOR' ? (
+              <div className="mt-3">
+                <Field
+                  label="용역비"
+                  hint={editing.outsourcingFeeMasked ? '본인 것만 수정할 수 있습니다.' : undefined}
+                >
+                  {({ id }) => (
+                    <Input
+                      id={id}
+                      name="fee"
+                      className="tabular text-right"
+                      readOnly={editing.outsourcingFeeMasked}
+                      // 0 원도 값이다. falsy 로 판정하면 빈칸으로 그려진다.
+                      defaultValue={
+                        editing.outsourcingFee === null
+                          ? ''
+                          : formatMoneyInput(String(editing.outsourcingFee))
+                      }
+                      onBlur={(event) => {
+                        event.currentTarget.value = formatMoneyInput(event.currentTarget.value);
+                      }}
+                    />
+                  )}
+                </Field>
+              </div>
+            ) : (
+              <p className="text-muted mt-3 text-[12.5px]">
+                정직원은 프로젝트별 용역비를 입력하지 않습니다.
+              </p>
+            )}
+
+            {editError && (
+              <p role="alert" className="text-danger mt-3 text-[12.5px]">
+                {editError}
+              </p>
+            )}
+
+            <div className="mt-4 flex justify-end gap-2">
+              <Button variant="secondary" onClick={() => setEditing(null)}>
+                취소
+              </Button>
+              <Button type="submit" variant="primary" disabled={members.update.isPending}>
+                저장
+              </Button>
+            </div>
+          </form>
         )}
       </Dialog>
     </Card>
